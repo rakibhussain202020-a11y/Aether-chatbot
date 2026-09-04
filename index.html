@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aether AI</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+body { background: linear-gradient(135deg, #667eea, #764ba2); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 10px; }
+.box { background: #fff; width: 100%; max-width: 500px; height: 92vh; max-height: 800px; border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+.hd { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; padding: 18px; text-align: center; }
+.hd h1 { font-size: 22px; margin-bottom: 3px; }
+.hd p { font-size: 12px; opacity: 0.9; }
+.dt { display: inline-block; width: 8px; height: 8px; background: #2ecc71; border-radius: 50%; margin-right: 5px; animation: pulse 2s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+.chat { flex: 1; padding: 15px; overflow-y: auto; background: #f5f5f5; }
+.m { margin-bottom: 12px; display: flex; animation: slide 0.3s; }
+@keyframes slide { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.u { justify-content: flex-end; }
+.b { justify-content: flex-start; }
+.bu { padding: 10px 14px; border-radius: 18px; max-width: 80%; font-size: 14px; line-height: 1.5; word-wrap: break-word; white-space: pre-wrap; }
+.u .bu { background: #667eea; color: #fff; }
+.b .bu { background: #fff; color: #333; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.inp { display: flex; padding: 12px; background: #fff; border-top: 1px solid #eee; gap: 8px; }
+.inp input { flex: 1; padding: 12px 16px; border: 1px solid #ddd; border-radius: 25px; font-size: 14px; outline: none; }
+.inp input:focus { border-color: #667eea; }
+.inp button { background: #667eea; color: #fff; border: none; padding: 10px 20px; border-radius: 25px; cursor: pointer; font-weight: bold; font-size: 14px; }
+.inp button:hover { background: #5568d3; }
+.inp button:disabled { background: #ccc; cursor: not-allowed; }
+.typing { display: inline-block; }
+.typing span { display: inline-block; width: 6px; height: 6px; background: #999; border-radius: 50%; margin: 0 2px; animation: bounce 1.4s infinite; }
+.typing span:nth-child(2) { animation-delay: 0.2s; }
+.typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-8px); } }
+.welcome { text-align: center; padding: 30px 20px; color: #999; }
+.welcome h2 { color: #667eea; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+<div class="box">
+<div class="hd">
+<h1>🤖 Aether AI</h1>
+<p><span class="dt"></span>Powered by Claude · Online</p>
+</div>
+<div class="chat" id="chat">
+<div class="welcome">
+<h2>Hey! Main Aether hoon 👋</h2>
+<p>Tumhara AI dost. Kuch bhi puchho!</p>
+</div>
+</div>
+<div class="inp">
+<input type="text" id="msg" placeholder="Kuch bhi puchho..." autocomplete="off">
+<button onclick="send()" id="btn">Send</button>
+</div>
+</div>
+
+<script>
+const chat = document.getElementById('chat');
+const inp = document.getElementById('msg');
+const btn = document.getElementById('btn');
+
+function add(text, who) {
+  // Welcome message hatane pe
+  const welcome = chat.querySelector('.welcome');
+  if (welcome) welcome.remove();
+  
+  const d = document.createElement('div');
+  d.className = 'm ' + (who === 'u' ? 'u' : 'b');
+  d.innerHTML = '<div class="bu">' + text + '</div>';
+  chat.appendChild(d);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function addTyping() {
+  const d = document.createElement('div');
+  d.className = 'm b';
+  d.id = 'typing';
+  d.innerHTML = '<div class="bu"><span class="typing"><span></span><span></span><span></span></span></div>';
+  chat.appendChild(d);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+inp.addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') send();
+});
+
+async function send() {
+  const msg = inp.value.trim();
+  if (!msg) return;
+  
+  add(msg, 'u');
+  inp.value = '';
+  btn.disabled = true;
+  btn.textContent = '...';
+  
+  addTyping();
+  
+  try {
+    const r = await fetch('/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg })
+    });
+    const data = await r.json();
+    
+    const typing = document.getElementById('typing');
+    if (typing) typing.remove();
+    
+    if (data.reply) {
+      add(data.reply, 'b');
+    } else {
+      add('❌ Error: ' + (data.error || 'Kuch galat ho gaya'), 'b');
+    }
+  } catch(e) {
+    const typing = document.getElementById('typing');
+    if (typing) typing.remove();
+    add('❌ Error: ' + e.message, 'b');
+  }
+  
+  btn.disabled = false;
+  btn.textContent = 'Send';
+}
+</script>
+</body>
+</html>
